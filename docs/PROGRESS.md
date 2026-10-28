@@ -16,6 +16,12 @@ Source of truth for project status. Update after every task/session, same commit
 
 ## Daily log
 
+### 2026-10-28 (later, NFR gates)
+
+- AGENTS.md: added §1.1 NFR hard-gates table (performance, speed, scalability, reliability, security), queue isolation + 10x-in-PR rule (§6.1), CI vuln-scan/rate-limit/measured-numbers rules (§10), NFR DoD checkbox (§12).
+- Verified: file diff reviewed only; no code involved.
+- Next: PR A (backend config/tooling/CI).
+
 ### 2026-10-28 (later)
 
 - Wrote `docs/architecture.md`: context/container/layering diagrams, ingestion and PDF fan-out flowcharts, 8 sequence diagrams (upload, PDF extract, reconciliation, correction, auth, reprocess, search, failure paths), security and deployment topology, decision table. Mermaid, GitHub-renderable.
