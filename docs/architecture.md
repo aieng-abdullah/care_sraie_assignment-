@@ -145,7 +145,7 @@ flowchart TB
     BATCH --> EXT[Extraction + grounding + schema]
     EXT --> VAL[Validation]
     VAL --> IDX[Embed + index]
-    IDX --> DONE[document status: ok | needs_review | failed]
+    IDX --> DONE["document status: ok, needs_review, or failed"]
 ```
 
 - Page tasks run in parallel across workers; a 1000-page file is 1000 small tasks, not one large job.
@@ -317,7 +317,8 @@ sequenceDiagram
     U->>FE: edit field on needs_review document
     FE->>API: PATCH /api/v1/documents/{id}/fields<br/>{field, new_value} (JWT)
     API->>API: validate value (schema, Decimal for money)
-    API->>DB: BEGIN; INSERT corrections (old, new, actor, ts);<br/>UPDATE extractions; COMMIT
+    API->>DB: insert corrections audit row (old, new, actor, timestamp)
+    API->>DB: update extraction field
     API->>W: enqueue re-validation task
     W->>W: re-run validation rules (not full extraction)
     W->>DB: refresh validation_issues + document status
@@ -413,7 +414,7 @@ sequenceDiagram
         W->>W: parser raises specific exception
         W->>DB: INSERT processing_events (failed, reason)
         W->>DB: document status=failed
-        Note over W: worker does not crash; temp files cleaned
+        Note over W: worker does not crash, temp files cleaned
     else LLM timeout or 429
         W->>LLM: request (explicit timeout)
         LLM--xW: TimeoutError / rate limit
