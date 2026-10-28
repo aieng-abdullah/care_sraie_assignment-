@@ -1,0 +1,40 @@
+# Secrets
+.env
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Uploads, data, models, logs
+uploads/
+*.log
+logs/
+*.pdf
+*.xlsx
+*.xls
+*.csv
+models/
+*.gguf
+*.onnx
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
