@@ -22,6 +22,18 @@ Read this file fully before making changes. If a rule here conflicts with a requ
 
 The brief also requires smooth performance, high speed, scalability, reliability, and strong security.
 
+### 1.1 Non-Functional Requirements (hard gates)
+
+Every change must preserve these. A PR that weakens one of them without saying so in "Impact and risks" is not mergeable.
+
+| NFR | Invariant |
+|---|---|
+| Performance | No OCR/LLM/embedding/disk-heavy work in the request path — enqueue only. Every filtered/searched column is indexed. Every list endpoint is paginated. No N+1 queries. |
+| Speed | Upload/status endpoints return in milliseconds. Large PDFs process page-by-page in parallel. LLM calls capped per invoice, never per page. |
+| Scalability | Stateless services; state only in PostgreSQL/Redis. Workers scale horizontally (`docker compose up --scale worker=N`). Page jobs idempotent. Queue isolation: separate `ocr` (CPU), `extract` (LLM-bound), `index` (embeddings) queues so one backlog cannot starve the others. |
+| Reliability | Explicit timeout on every external call (LLM, DB, Redis, OCR). Retries with backoff+jitter only for idempotent jobs, plus dead-letter and reprocess path. Corrupted input fails gracefully without crashing workers. Transactions on multi-step writes. |
+| Security | Magic-byte upload checks, size/page caps, sanitized filenames. JWT on every route. ORM parameterized queries only. LLM/OCR output untrusted (schema + grounding). Secrets via env only, never logged. No PII/document text in logs. Pinned non-root Docker images. |
+
 ## 2. Hard Prohibitions (never do these)
 
 1. **Never edit, overwrite, delete, or commit `.env` or any secrets file without explicit permission.** Changes go in `.env.example` (placeholders only). If a new variable is needed, add it to `.env.example` and tell the user.
@@ -168,7 +180,8 @@ export function statusLabel(status: DocumentStatus): string { ... }
 - Keep services **stateless** so workers can scale horizontally. State lives in PostgreSQL/Redis.
 - Paginate every list endpoint. Add DB indexes for every filtered/searched column. Avoid N+1 queries.
 - Batch LLM and embedding calls; cap calls per invoice, not per page.
-- Before adding a feature, ask: what happens at 10x the load?
+- Keep OCR, extraction, and indexing on separate Celery queues (`ocr`, `extract`, `index`) so a CPU-heavy backlog cannot starve LLM-bound work or vice versa.
+- Before adding a feature, ask: what happens at 10x the load? Answer that question in the PR description under "Impact and risks".
 
 ### 6.2 Modularity
 
@@ -255,6 +268,9 @@ The brief asks for smooth performance, high speed, scalability, reliability, and
 - **Data safety:** schema changes only through Alembic migrations. Use transactions for multi-step writes. Keep an audit trail for manual corrections.
 - **Deployment:** `docker compose up` must work from a clean clone. Pin dependency versions.
 - **Errors:** consistent error format and correct HTTP status codes. Never leak stack traces to clients.
+- **CI gates:** lint, type check, tests, and a dependency vulnerability scan (`pip-audit` or `uv audit`) must pass. A red scan blocks merge.
+- **Rate limits:** login and upload endpoints return 429 under abuse; limits configurable via env.
+- **Measured numbers only:** any latency or throughput figure in a PR or report comes from a real run (p50/p95 measured), never an estimate.
 
 ## 11. Progress Tracking
 
@@ -277,6 +293,7 @@ A task is done only when all of these are true:
 - [ ] No secrets, `.env` changes, or stray files in the diff
 - [ ] Error and failure paths are handled
 - [ ] Production concerns considered (config, logging, timeouts, limits, migrations)
+- [ ] NFR gates (§1.1) checked for this change, or explicitly listed as "not verified": authz present, size/page limits enforced, request path free of heavy work, timeouts set
 - [ ] PR written per the PR rules (clear description, real test output, limitations disclosed)
 - [ ] Docs/README updated if behavior or setup changed
 - [ ] `docs/PROGRESS.md` updated with status, verification, and next steps
