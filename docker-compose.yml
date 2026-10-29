@@ -1,0 +1,75 @@
+# DocIntel local stack. Requires .env at repo root (cp .env.example .env).
+# `docker compose up` must work from a clean clone (AGENTS.md §10).
+
+name: docintel
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: docintel
+      POSTGRES_PASSWORD: docintel
+      POSTGRES_DB: docintel
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docintel -d docintel"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7.2.5-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://docintel:docintel@postgres:5432/docintel
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads:/app/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: celery -A app.workers.celery_app.celery_app worker --loglevel=info --concurrency=2
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://docintel:docintel@postgres:5432/docintel
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - uploads:/app/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+
+  # Frontend service added in a later PR once the Next.js app exists.
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:

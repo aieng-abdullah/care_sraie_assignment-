@@ -148,15 +148,15 @@ docker compose up --scale worker=4
 ```bash
 docker compose up -d postgres redis      # infrastructure only
 
-# Backend
+# Backend (uses uv; see backend/pyproject.toml)
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload
-celery -A app.workers.celery_app worker --loglevel=info
+uv sync
+cp ../.env.example ../.env               # fill in DATABASE_URL/REDIS_URL host values
+uv run alembic upgrade head              # no-op until first migration exists
+uv run uvicorn app.main:create_app --factory --reload
+uv run celery -A app.workers.celery_app.celery_app worker --loglevel=info
 
-# Frontend
+# Frontend (scaffolded in a later milestone)
 cd frontend
 npm install
 npm run dev
@@ -189,6 +189,8 @@ Interactive docs are available at `/docs`.
 
 | Method | Endpoint | Description |
 |---|---|---|
+| `GET` | `/health` | Liveness probe (no dependencies) |
+| `GET` | `/ready` | Readiness probe (database + Redis) |
 | `POST` | `/api/v1/auth/login` | Obtain a JWT |
 | `POST` | `/api/v1/documents` | Upload one or more files (multipart) |
 | `GET` | `/api/v1/documents` | List and filter (`q`, `status`, `supplier`, `date_from`, `date_to`) |

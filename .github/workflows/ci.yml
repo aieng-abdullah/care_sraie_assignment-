@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: lint → typecheck → test → audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install pinned Python
+        run: uv python install
+
+      - name: Sync locked dependencies
+        run: uv sync --locked
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Type check
+        run: uv run mypy
+
+      - name: Tests
+        run: uv run pytest --cov=app --cov-report=term-missing
+
+      - name: Dependency vulnerability audit (blocking)
+        run: |
+          uv export --format requirements-txt --no-hashes --no-dev -o /tmp/requirements.txt
+          uv run pip-audit -r /tmp/requirements.txt
