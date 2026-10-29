@@ -15,7 +15,7 @@ Ingests digital and scanned PDFs (up to ~1000 pages), images, Excel and CSV file
 | Reliability | Idempotent jobs, retries with backoff, dead-letter path, recorded failures |
 | No invented values | Grounding check against source text; `null` + confidence instead of guesses |
 | Scalability | Stateless services; state in PostgreSQL/Redis; workers scale horizontally |
-| Security | Magic-byte upload validation, JWT auth, parameterized ORM queries, untrusted LLM output |
+| Security | Magic-byte upload validation, parameterized ORM queries, untrusted LLM output |
 
 ## 2. System context
 
@@ -238,9 +238,7 @@ sequenceDiagram
     participant W as Celery worker
 
     U->>FE: select multiple files
-    FE->>API: POST /api/v1/auth/login
-    API-->>FE: JWT
-    FE->>API: POST /api/v1/documents (multipart, Bearer JWT)
+    FE->>API: POST /api/v1/documents (multipart)
     API->>API: magic-byte check, size/page limits, sanitize name
     API->>DB: INSERT documents (status=queued)
     API->>R: enqueue parent job (document_id)
@@ -315,7 +313,7 @@ sequenceDiagram
     participant W as Celery worker
 
     U->>FE: edit field on needs_review document
-    FE->>API: PATCH /api/v1/documents/{id}/fields<br/>{field, new_value} (JWT)
+    FE->>API: PATCH /api/v1/documents/{id}/fields<br/>{field, new_value}
     API->>API: validate value (schema, Decimal for money)
     API->>DB: insert corrections audit row (old, new, actor, timestamp)
     API->>DB: update extraction field
@@ -327,29 +325,12 @@ sequenceDiagram
     Note over DB: corrections table is append-only audit trail
 ```
 
-## 14. Sequence: authentication
+## 14. Authentication
 
-```mermaid
-sequenceDiagram
-    actor U as User
-    participant FE as UI
-    participant API as FastAPI
-    participant DB as PostgreSQL
-
-    U->>FE: credentials
-    FE->>API: POST /api/v1/auth/login
-    API->>DB: verify user + password hash
-    API-->>FE: access token (JWT, short TTL)
-    FE->>API: any protected route (Authorization: Bearer)
-    API->>API: verify signature + expiry
-    alt invalid / missing
-        API-->>FE: 401 Unauthorized
-    else valid
-        API-->>FE: 200 response
-    end
-```
-
-Every endpoint authenticated and authorized; rate limit applied on upload routes.
+Not implemented: the assignment brief requires "strong security" but does not require user
+accounts or login. Security is enforced by magic-byte validation, size/page caps, rate
+limiting on uploads, parameterized queries, and secret handling via env. Rate limit applied
+on upload routes.
 
 ## 15. Sequence: reprocess failed job
 
@@ -363,7 +344,7 @@ sequenceDiagram
     participant W as Celery worker
 
     U->>FE: click reprocess
-    FE->>API: POST /api/v1/documents/{id}/reprocess (JWT)
+    FE->>API: POST /api/v1/documents/{id}/reprocess
     API->>DB: check status in (failed, needs_review)
     API->>DB: status=queued, append processing_events (reprocess)
     API->>R: enqueue parent job
@@ -464,7 +445,6 @@ flowchart TB
         RL[Upload rate limit]
     end
     subgraph api [API]
-        JWT[JWT authz on every route]
         MV[Pydantic request validation]
         ORM[ORM parameterized queries only]
     end

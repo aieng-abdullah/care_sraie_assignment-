@@ -14,8 +14,6 @@ dependencies = [
     "psycopg[binary]>=3.2,<4",
     "celery>=5.4,<6",
     "redis>=5.0,<6",
-    "pyjwt>=2.9,<3",
-    "argon2-cffi>=24.2,<26",
     "python-multipart>=0.0.12,<1",
     "httpx>=0.27,<1",
     "openai>=1.50,<2",
@@ -40,6 +38,10 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI declares DI parameters as defaults (Depends/File/Query) by design.
+"app/api/**/*.py" = ["B008"]
 
 [tool.mypy]
 python_version = "3.11"

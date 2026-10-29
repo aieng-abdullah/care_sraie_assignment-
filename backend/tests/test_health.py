@@ -13,7 +13,6 @@ from app.core.config import get_settings
 _REQUIRED_ENV = {
     "DATABASE_URL": "postgresql+psycopg://test:test@localhost:5432/test",
     "REDIS_URL": "redis://localhost:6379/0",
-    "JWT_SECRET": "test-secret",
     "LLM_API_KEY": "test-key",
 }
 

@@ -32,7 +32,7 @@ Every change must preserve these. A PR that weakens one of them without saying s
 | Speed | Upload/status endpoints return in milliseconds. Large PDFs process page-by-page in parallel. LLM calls capped per invoice, never per page. |
 | Scalability | Stateless services; state only in PostgreSQL/Redis. Workers scale horizontally (`docker compose up --scale worker=N`). Page jobs idempotent. Queue isolation: separate `ocr` (CPU), `extract` (LLM-bound), `index` (embeddings) queues so one backlog cannot starve the others. |
 | Reliability | Explicit timeout on every external call (LLM, DB, Redis, OCR). Retries with backoff+jitter only for idempotent jobs, plus dead-letter and reprocess path. Corrupted input fails gracefully without crashing workers. Transactions on multi-step writes. |
-| Security | Magic-byte upload checks, size/page caps, sanitized filenames. JWT on every route. ORM parameterized queries only. LLM/OCR output untrusted (schema + grounding). Secrets via env only, never logged. No PII/document text in logs. Pinned non-root Docker images. |
+| Security | Magic-byte upload checks, size/page caps, sanitized filenames. ORM parameterized queries only. LLM/OCR output untrusted (schema + grounding). Secrets via env only, never logged. No PII/document text in logs. Pinned non-root Docker images. |
 
 ## 2. Hard Prohibitions (never do these)
 
@@ -194,7 +194,7 @@ export function statusLabel(status: DocumentStatus): string { ... }
 ### 6.3 Security
 
 - Validate uploads by **content (magic bytes)**, not extension; enforce size and page limits; sanitize filenames; never trust client-provided paths.
-- Authenticate and authorize every endpoint. Rate-limit uploads.
+- Rate-limit uploads. (No auth layer: brief requires "strong security" but no user accounts; decision recorded in `docs/PROGRESS.md`.)
 - Parameterized queries only (use the ORM). No string-built SQL.
 - Treat LLM output and OCR text as **untrusted input**; validate against schemas and guard against prompt injection from document content.
 - Note PII exposure when sending document text to external LLM APIs.
@@ -212,7 +212,6 @@ The brief asks for a **simple React or Next.js interface**. Build exactly these 
 
 Rules:
 - Keep it simple and functional. No extra pages, dashboards, analytics, theming systems, or animations beyond what these six need.
-- A minimal login screen is allowed only because the API uses JWT.
 - Show real data from the API. Never hard-code or mock results in the UI.
 - Show loading, empty, and error states. Display low-confidence and `null` fields clearly, and never fill them in on the client.
 - Use a typed API client (TypeScript) and keep components small and reusable.
@@ -269,7 +268,7 @@ The brief asks for smooth performance, high speed, scalability, reliability, and
 - **Deployment:** `docker compose up` must work from a clean clone. Pin dependency versions.
 - **Errors:** consistent error format and correct HTTP status codes. Never leak stack traces to clients.
 - **CI gates:** lint, type check, tests, and a dependency vulnerability scan (`pip-audit` or `uv audit`) must pass. A red scan blocks merge.
-- **Rate limits:** login and upload endpoints return 429 under abuse; limits configurable via env.
+- **Rate limits:** upload endpoints return 429 under abuse; limits configurable via env.
 - **Measured numbers only:** any latency or throughput figure in a PR or report comes from a real run (p50/p95 measured), never an estimate.
 
 ## 11. Progress Tracking
@@ -293,7 +292,7 @@ A task is done only when all of these are true:
 - [ ] No secrets, `.env` changes, or stray files in the diff
 - [ ] Error and failure paths are handled
 - [ ] Production concerns considered (config, logging, timeouts, limits, migrations)
-- [ ] NFR gates (§1.1) checked for this change, or explicitly listed as "not verified": authz present, size/page limits enforced, request path free of heavy work, timeouts set
+- [ ] NFR gates (§1.1) checked for this change, or explicitly listed as "not verified": size/page limits enforced, request path free of heavy work, timeouts set
 - [ ] PR written per the PR rules (clear description, real test output, limitations disclosed)
 - [ ] Docs/README updated if behavior or setup changed
 - [ ] `docs/PROGRESS.md` updated with status, verification, and next steps

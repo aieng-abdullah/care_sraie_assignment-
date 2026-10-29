@@ -174,7 +174,6 @@ All settings are environment variables, validated at startup. Copy `.env.example
 | `REDIS_URL` | Redis connection string |
 | `LLM_API_KEY` | API key for the LLM provider |
 | `LLM_MODEL` | Model name used for extraction |
-| `JWT_SECRET` | Secret for signing auth tokens |
 | `MAX_UPLOAD_MB` | Maximum file size |
 | `MAX_PDF_PAGES` | Maximum pages per PDF |
 | `OCR_ENGINE` | `tesseract` or `paddle` |
@@ -187,19 +186,18 @@ All settings are environment variables, validated at startup. Copy `.env.example
 
 Interactive docs are available at `/docs`.
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Liveness probe (no dependencies) |
-| `GET` | `/ready` | Readiness probe (database + Redis) |
-| `POST` | `/api/v1/auth/login` | Obtain a JWT |
-| `POST` | `/api/v1/documents` | Upload one or more files (multipart) |
-| `GET` | `/api/v1/documents` | List and filter (`q`, `status`, `supplier`, `date_from`, `date_to`) |
-| `GET` | `/api/v1/documents/{id}/status` | Processing status and progress |
-| `GET` | `/api/v1/documents/{id}/result` | Extracted JSON and validation issues |
-| `PATCH` | `/api/v1/documents/{id}/fields` | Manual correction (re-runs validation) |
-| `POST` | `/api/v1/documents/{id}/reprocess` | Reprocess a failed job |
-| `POST` | `/api/v1/search/semantic` | Semantic search |
-| `GET` | `/api/v1/reconciliations` | Cross-document verification results |
+| Method | Endpoint | Description | Status |
+|---|---|---|---|
+| `GET` | `/health` | Liveness probe (no dependencies) | Implemented |
+| `GET` | `/ready` | Readiness probe (database + Redis) | Implemented |
+| `POST` | `/api/v1/documents` | Upload one or more files (multipart) | Implemented |
+| `GET` | `/api/v1/documents` | List and filter (`q`, `status`, pagination) | Implemented |
+| `GET` | `/api/v1/documents/{id}/status` | Processing status and progress | Implemented |
+| `GET` | `/api/v1/documents/{id}/result` | Extracted JSON and validation issues | Planned (Tasks 2–3) |
+| `PATCH` | `/api/v1/documents/{id}/fields` | Manual correction (re-runs validation) | Planned (Tasks 3–4) |
+| `POST` | `/api/v1/documents/{id}/reprocess` | Reprocess a failed job | Planned (Task 4) |
+| `POST` | `/api/v1/search/semantic` | Semantic search | Planned (Task 5) |
+| `GET` | `/api/v1/reconciliations` | Cross-document verification results | Planned (Tasks 1–3) |
 
 ### Example extraction result
 
@@ -259,7 +257,7 @@ Full schema and ER diagram: [`docs/database_schema.md`](docs/database_schema.md)
 
 - File type verified by **content (magic bytes)**, not extension
 - Size and page limits, filename sanitization
-- JWT authentication, rate limiting on uploads
+- Rate limiting on uploads
 - Parameterized queries via ORM only
 - OCR text and LLM output treated as **untrusted input** (schema validation, prompt-injection awareness)
 - Secrets only via environment variables

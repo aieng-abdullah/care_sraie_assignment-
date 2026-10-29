@@ -10,7 +10,6 @@ from app.core.config import Settings, get_settings
 REQUIRED = {
     "database_url": "postgresql+psycopg://u:p@localhost/db",
     "redis_url": "redis://localhost:6379/0",
-    "jwt_secret": "test-secret",
     "llm_api_key": "test-key",
 }
 
@@ -25,7 +24,7 @@ def test_missing_required_env_fails_fast() -> None:
     with pytest.raises(ValidationError) as excinfo:
         Settings.model_validate({})
     missing = {error["loc"][0] for error in excinfo.value.errors()}
-    assert {"database_url", "redis_url", "jwt_secret", "llm_api_key"} <= missing
+    assert {"database_url", "redis_url", "llm_api_key"} <= missing
 
 
 def test_defaults_match_documented_env_example() -> None:
@@ -39,11 +38,10 @@ def test_defaults_match_documented_env_example() -> None:
 
 
 def test_secrets_never_appear_in_repr() -> None:
-    """SecretStr keeps API keys and JWT secret out of repr/str output (no secret logging)."""
+    """SecretStr keeps the LLM API key out of repr/str output (no secret logging)."""
     settings = make_settings()
-    assert "test-secret" not in repr(settings)
     assert "test-key" not in repr(settings)
-    assert "test-secret" not in str(settings.model_dump())
+    assert "test-key" not in str(settings.model_dump())
 
 
 def test_invalid_ocr_engine_rejected() -> None:
