@@ -8,7 +8,6 @@ High-level context: [`architecture.md`](architecture.md).
 
 ```mermaid
 erDiagram
-    users ||--o{ documents : owns
     documents ||--o{ pages : has
     documents ||--o| extractions : has
     extractions ||--o{ line_items : has
@@ -20,17 +19,8 @@ erDiagram
     documents ||--o{ reconciliations : "as right"
     reconciliations ||--o{ validation_issues : "may raise"
 
-    users {
-        uuid id PK
-        varchar email UK
-        varchar password_hash
-        varchar role
-        timestamptz created_at
-    }
-
     documents {
         uuid id PK
-        uuid user_id FK
         varchar filename
         varchar content_type
         varchar original_sha256 UK
@@ -95,7 +85,6 @@ erDiagram
     corrections {
         uuid id PK
         uuid document_id FK
-        uuid user_id FK
         varchar field
         text old_value
         text new_value
@@ -133,18 +122,6 @@ erDiagram
 
 ## Tables
 
-### `users`
-
-Authentication principals for the API (JWT).
-
-| Column | Type | Notes |
-|---|---|---|
-| `id` | `uuid` PK | default `gen_random_uuid()` |
-| `email` | `varchar(255)` UK | lowercase, not null |
-| `password_hash` | `varchar(255)` | not null; Argon2/bcrypt |
-| `role` | `varchar(32)` | not null; default `analyst` |
-| `created_at` | `timestamptz` | not null; default `now()` |
-
 ### `documents`
 
 One row per uploaded file; parent of all processing state.
@@ -152,7 +129,6 @@ One row per uploaded file; parent of all processing state.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | `uuid` PK | |
-| `user_id` | `uuid` FK → `users.id` | not null; ownership / authz |
 | `filename` | `varchar(512)` | sanitized display name, not a path |
 | `content_type` | `varchar(128)` | detected from magic bytes, not client header |
 | `original_sha256` | `char(64)` UK | idempotent re-upload / duplicate detection |
@@ -163,7 +139,7 @@ One row per uploaded file; parent of all processing state.
 | `failure_reason` | `text` | null unless `failed`; safe for UI (no stack traces) |
 | `created_at` / `updated_at` | `timestamptz` | |
 
-Indexes: `status`, `user_id`, `created_at` (list filters, pagination), `original_sha256` (unique).
+Indexes: `status`, `created_at` (list filters, pagination), `original_sha256` (unique).
 
 ### `pages`
 
@@ -258,7 +234,6 @@ Append-only audit trail for manual edits. Never update or delete rows.
 |---|---|---|
 | `id` | `uuid` PK | |
 | `document_id` | `uuid` FK → `documents.id` | not null |
-| `user_id` | `uuid` FK → `users.id` | who made the change |
 | `field` | `varchar(64)` | extraction field name |
 | `old_value` | `text` | prior value (string form; null preserved as empty + flag) |
 | `new_value` | `text` | corrected value |
@@ -315,7 +290,7 @@ Indexes: `(left_document_id)`, `(right_document_id)`, unique `(left_document_id,
 
 ## Index strategy (summary)
 
-Every column used in list filters, joins, or search has an index (AGENTS.md §6.1): `documents.status`, `documents.user_id`, `documents.created_at`, `extractions.invoice_number`, `extractions.supplier_name`, `extractions.invoice_date`, `pages(document_id, page_no)` unique, `embeddings.vector` (HNSW), plus FKs used in cascade/joins. Lists always paginate (`LIMIT/OFFSET` or keyset on `created_at`).
+Every column used in list filters, joins, or search has an index (AGENTS.md §6.1): `documents.status`, `documents.created_at`, `extractions.invoice_number`, `extractions.supplier_name`, `extractions.invoice_date`, `pages(document_id, page_no)` unique, `embeddings.vector` (HNSW), plus FKs used in cascade/joins. Lists always paginate (`LIMIT/OFFSET` or keyset on `created_at`).
 
 ## Money rules
 

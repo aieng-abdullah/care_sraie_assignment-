@@ -23,7 +23,6 @@ class Settings(BaseSettings):
     # Required: startup fails with a clear validation error if any are missing.
     database_url: str
     redis_url: str
-    jwt_secret: SecretStr
     llm_api_key: SecretStr
 
     # LLM (Groq via OpenAI-compatible endpoint).
@@ -36,16 +35,10 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dim: int = Field(default=1536, gt=0)
 
-    # Auth.
-    jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = Field(default=60, gt=0, le=1440)
-
     # Limits (NFR hard gates: size/page caps, rate limits).
     max_upload_mb: int = Field(default=20, gt=0, le=500)
     max_pdf_pages: int = Field(default=1000, gt=1, le=5000)
     rate_limit_uploads_per_minute: int = Field(default=60, gt=0)
-    rate_limit_login_per_minute: int = Field(default=10, gt=0)
-
     # Storage and OCR.
     upload_dir: Path = Path("data/uploads")
     ocr_engine: OcrEngine = "tesseract"

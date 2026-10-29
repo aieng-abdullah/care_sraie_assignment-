@@ -7,7 +7,7 @@ Source of truth for project status. Update after every task/session, same commit
 | Task | Deliverable | Status |
 |------|-------------|--------|
 | 1 | Backend scaffold: config, logging, health probes, Celery app, Alembic, Docker | Done |
-| 2 | Auth (JWT) + documents API | Not started |
+| 2 | Documents API (upload, status, results, search, corrections, reprocess) | Not started |
 | 3 | PDF / image pipelines (page-parallel OCR + text extraction) | Not started |
 | 4 | Excel / CSV pipelines | Not started |
 | 5 | LLM extraction + grounding + validation rules | Not started |
@@ -15,6 +15,12 @@ Source of truth for project status. Update after every task/session, same commit
 | 7 | Evaluation dataset, metrics, report | Not started |
 
 ## Daily log
+
+### 2026-10-29 (later)
+
+- Dropped auth layer per owner decision: assignment brief requires "strong security" but never mentions login/JWT; JWT existed only as an AGENTS.md rule. Removed `jwt_secret`/`jwt_*` and `rate_limit_login_per_minute` from `Settings`, `JWT_*`/`RATE_LIMIT_LOGIN_PER_MINUTE` from `.env.example`, `pyjwt` + `argon2-cffi` deps; AGENTS.md security/NFR rules rewritten (no authz); `users` table and `user_id` columns removed from `docs/database_schema.md`; auth sequence and JWT references removed from `docs/architecture.md` and README.
+- Security now: magic-byte checks, size/page caps, upload rate limit, parameterized ORM, env-only secrets, no PII in logs. Decision: re-add auth only if deployment needs multi-user isolation (not in brief).
+- Next: gates (uv lock, ruff/mypy/pytest), then PR B documents API.
 
 ### 2026-10-29
 
@@ -38,6 +44,7 @@ Source of truth for project status. Update after every task/session, same commit
 ## Decisions
 
 - Layout follows AGENTS.md §7 (strict layering api → services → repositories → models).
+- **No authentication.** Brief mandates "strong security" but defines no users/login; JWT was an AGENTS.md addition, removed 2026-10-29 to protect the 5-day budget for brief Tasks 1–7. Security = input validation, rate limits, secret hygiene. AGENTS.md updated to match.
 - App built via `create_app()` factory; uvicorn `--factory` form so settings validation fails at process boot.
 - Celery broker/backend both Redis; queue isolation now, routing added with first real tasks.
 - Alembic URL comes from `app.core.config.Settings`, never from `alembic.ini`.
