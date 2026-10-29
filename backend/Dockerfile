@@ -12,6 +12,10 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr libtesseract5 libpng-dev libjpeg-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system app && useradd --system --gid app --create-home app
 
 COPY --from=uv /uv /usr/local/bin/uv

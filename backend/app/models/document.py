@@ -20,7 +20,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.enums import DocumentStatus, PageSource
+from app.models.enums import DocumentStatus
 
 
 class Document(Base):
@@ -37,9 +37,7 @@ class Document(Base):
     page_count: Mapped[int | None] = mapped_column(Integer)
     storage_path: Mapped[str] = mapped_column(String(1024))
     failure_reason: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
@@ -65,22 +63,16 @@ class Page(Base):
     __tablename__ = "pages"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    document_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("documents.id", ondelete="CASCADE")
-    )
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
     page_no: Mapped[int] = mapped_column(Integer)
     text_content: Mapped[str | None] = mapped_column(Text)
     source: Mapped[str | None] = mapped_column(String(16))  # PageSource or null
     confidence: Mapped[Decimal | None] = mapped_column(Numeric(5, 4))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     document: Mapped[Document] = relationship(back_populates="pages")
 
-    __table_args__ = (
-        Index("uq_pages_document_page", "document_id", "page_no", unique=True),
-    )
+    __table_args__ = (Index("uq_pages_document_page", "document_id", "page_no", unique=True),)
 
 
 class ProcessingEvent(Base):
@@ -89,18 +81,12 @@ class ProcessingEvent(Base):
     __tablename__ = "processing_events"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    document_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("documents.id", ondelete="CASCADE")
-    )
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"))
     event_type: Mapped[str] = mapped_column(String(32))
     task_id: Mapped[str | None] = mapped_column(String(128))
     detail: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     document: Mapped[Document] = relationship(back_populates="events")
 
-    __table_args__ = (
-        Index("ix_processing_events_document_created", "document_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_processing_events_document_created", "document_id", "created_at"),)
