@@ -17,6 +17,13 @@ dependencies = [
     "python-multipart>=0.0.12,<1",
     "httpx>=0.27,<1",
     "openai>=1.50,<2",
+    "pymupdf>=2.0",
+    "pandas>=3.1.0",
+    "openpyxl>=3.1.5",
+    "xlrd>=2.0.2",
+    "pillow>=13.0.0",
+    "pytesseract>=0.3.13",
+    "opencv-python-headless>=5.0.0.93",
 ]
 
 [dependency-groups]
@@ -54,6 +61,17 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = ["celery.*", "fitz.*", "pandas.*", "cv2.*", "PIL.*", "pytesseract.*", "openpyxl.*", "xlrd.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# celery's @app.task decorator is untyped; signatures below it are fully typed.
+module = ["app.workers.tasks"]
+disable_error_code = ["untyped-decorator"]
+
+[[tool.mypy.overrides]]
+# pymupdf 2.x ships partial stubs (open/save/close/load_page untyped); the only
+# untyped calls in these three modules are to pymupdf.
+module = ["app.pipelines.pdf_pipeline", "tests.test_pipelines", "tests.test_worker_tasks"]
+disable_error_code = ["no-untyped-call"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

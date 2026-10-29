@@ -78,6 +78,4 @@ class LineItem(Base):
 
     extraction: Mapped[Extraction] = relationship(back_populates="line_items")
 
-    __table_args__ = (
-        Index("ix_line_items_extraction_position", "extraction_id", "position"),
-    )
+    __table_args__ = (Index("ix_line_items_extraction_position", "extraction_id", "position"),)

@@ -19,8 +19,10 @@ def make_settings(**overrides: Any) -> Settings:
     return Settings.model_validate({**REQUIRED, **overrides})
 
 
-def test_missing_required_env_fails_fast() -> None:
+def test_missing_required_env_fails_fast(monkeypatch: pytest.MonkeyPatch) -> None:
     """Absent required variables raise a validation error instead of starting half-configured."""
+    for key in ("DATABASE_URL", "REDIS_URL", "LLM_API_KEY"):
+        monkeypatch.delenv(key, raising=False)
     with pytest.raises(ValidationError) as excinfo:
         Settings.model_validate({})
     missing = {error["loc"][0] for error in excinfo.value.errors()}

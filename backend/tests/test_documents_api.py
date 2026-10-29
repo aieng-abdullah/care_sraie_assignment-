@@ -8,9 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.core import rate_limit
 from app.core.config import get_settings
-from app.core.database import Base, get_engine, reset_engine
 
 _REQUIRED_ENV = {
     "REDIS_URL": "redis://localhost:6379/0",
@@ -21,30 +19,18 @@ _PDF = b"%PDF-1.4\n1 0 obj\n<< >>\nendobj\ntrailer\n<< >>\n%%EOF\n"
 
 
 @pytest.fixture
-def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
-    """TestClient wired to a fresh SQLite DB and temp upload dir per test."""
-    for key, value in _REQUIRED_ENV.items():
-        monkeypatch.setenv(key, value)
-    db_path = tmp_path / "test.db"
-    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{db_path}")
-    monkeypatch.setenv("UPLOAD_DIR", str(tmp_path / "uploads"))
-    get_settings.cache_clear()
-    reset_engine()
-    rate_limit._windows.clear()
+def client(db_env: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
+    """TestClient wired to the shared per-test database fixture."""
+    # Upload must not hit the Celery broker in API tests; worker tests cover dispatch.
+    from app.services import documents as documents_service
 
-    import app.models  # noqa: F401  # register tables
-
-    Base.metadata.create_all(get_engine())
+    monkeypatch.setattr(documents_service, "dispatch_document", lambda session, document_id: True)
 
     from app.main import create_app
 
     fastapi_app: FastAPI = create_app()
     with TestClient(fastapi_app) as test_client:
         yield test_client
-
-    reset_engine()
-    get_settings.cache_clear()
-    rate_limit._windows.clear()
 
 
 def _upload(client: TestClient, files: list[tuple[str, bytes, str]]) -> httpx.Response:

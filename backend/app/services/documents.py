@@ -102,7 +102,29 @@ def ingest_upload(
         "document ingested",
         extra={"event": "document_uploaded", "document_id": str(document.id)},
     )
+    dispatch_document(session, document.id)
     return IngestOutcome(document=document, duplicate=False)
+
+
+def dispatch_document(session: Session, document_id: uuid.UUID) -> bool:
+    """Enqueue the parent processing job; broker failure keeps the row queued.
+
+    Request path only enqueues (NFR: no heavy work inline). Failure is recorded
+    as an event so the gap is visible instead of silent.
+    """
+    from app.workers.tasks import process_document  # lazy: celery reads settings at import
+
+    try:
+        process_document.delay(str(document_id))
+        return True
+    except Exception:
+        logger.warning(
+            "enqueue failed; document stays queued",
+            extra={"event": "enqueue_failed", "document_id": str(document_id)},
+        )
+        documents_repo.add_event(session, document_id=document_id, event_type="enqueue_failed")
+        session.commit()
+        return False
 
 
 def _hash_and_probe(stream: BinaryIO, max_mb: int) -> tuple[str, int, bytes]:

@@ -1,14 +1,14 @@
 """Reconciliation ORM model (cross-document PDF/Excel verification results)."""
 
 import uuid
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.models.enums import ReconciliationStatus, ReconciliationCheckType
+from app.models.enums import ReconciliationCheckType, ReconciliationStatus
 
 
 class Reconciliation(Base):
@@ -26,9 +26,7 @@ class Reconciliation(Base):
     check_type: Mapped[str] = mapped_column(String(32), default=ReconciliationCheckType.PDF_PDF)
     status: Mapped[str] = mapped_column(String(32), default=ReconciliationStatus.INCOMPLETE)
     evidence: Mapped[dict[str, Any] | None] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
         Index("ix_reconciliations_left", "left_document_id"),
