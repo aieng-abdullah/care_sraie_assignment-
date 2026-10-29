@@ -186,18 +186,18 @@ All settings are environment variables, validated at startup. Copy `.env.example
 
 Interactive docs are available at `/docs`.
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/health` | Liveness probe (no dependencies) |
-| `GET` | `/ready` | Readiness probe (database + Redis) |
-| `POST` | `/api/v1/documents` | Upload one or more files (multipart) |
-| `GET` | `/api/v1/documents` | List and filter (`q`, `status`, `supplier`, `date_from`, `date_to`) |
-| `GET` | `/api/v1/documents/{id}/status` | Processing status and progress |
-| `GET` | `/api/v1/documents/{id}/result` | Extracted JSON and validation issues |
-| `PATCH` | `/api/v1/documents/{id}/fields` | Manual correction (re-runs validation) |
-| `POST` | `/api/v1/documents/{id}/reprocess` | Reprocess a failed job |
-| `POST` | `/api/v1/search/semantic` | Semantic search |
-| `GET` | `/api/v1/reconciliations` | Cross-document verification results |
+| Method | Endpoint | Description | Status |
+|---|---|---|---|
+| `GET` | `/health` | Liveness probe (no dependencies) | Implemented |
+| `GET` | `/ready` | Readiness probe (database + Redis) | Implemented |
+| `POST` | `/api/v1/documents` | Upload one or more files (multipart) | Implemented |
+| `GET` | `/api/v1/documents` | List and filter (`q`, `status`, pagination) | Implemented |
+| `GET` | `/api/v1/documents/{id}/status` | Processing status and progress | Implemented |
+| `GET` | `/api/v1/documents/{id}/result` | Extracted JSON and validation issues | Planned (Tasks 2–3) |
+| `PATCH` | `/api/v1/documents/{id}/fields` | Manual correction (re-runs validation) | Planned (Tasks 3–4) |
+| `POST` | `/api/v1/documents/{id}/reprocess` | Reprocess a failed job | Planned (Task 4) |
+| `POST` | `/api/v1/search/semantic` | Semantic search | Planned (Task 5) |
+| `GET` | `/api/v1/reconciliations` | Cross-document verification results | Planned (Tasks 1–3) |
 
 ### Example extraction result
 

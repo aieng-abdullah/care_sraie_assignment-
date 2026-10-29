@@ -30,7 +30,8 @@ logs/
 *.xlsx
 *.xls
 *.csv
-models/
+# ML weights only — must NOT match backend/app/models (Python package)
+/models/
 *.gguf
 *.onnx
 

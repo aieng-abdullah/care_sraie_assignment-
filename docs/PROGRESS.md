@@ -7,7 +7,7 @@ Source of truth for project status. Update after every task/session, same commit
 | Task | Deliverable | Status |
 |------|-------------|--------|
 | 1 | Backend scaffold: config, logging, health probes, Celery app, Alembic, Docker | Done |
-| 2 | Documents API (upload, status, results, search, corrections, reprocess) | Not started |
+| 2 | Documents API (upload, status, results, search, corrections, reprocess) | In progress — upload/list/status done; result/corrections/reprocess/search pending |
 | 3 | PDF / image pipelines (page-parallel OCR + text extraction) | Not started |
 | 4 | Excel / CSV pipelines | Not started |
 | 5 | LLM extraction + grounding + validation rules | Not started |
@@ -15,6 +15,17 @@ Source of truth for project status. Update after every task/session, same commit
 | 7 | Evaluation dataset, metrics, report | Not started |
 
 ## Daily log
+
+### 2026-10-29 (PR B: documents API part 1)
+
+- Data layer: ORM models for all 8 core tables (`documents`, `pages`, `extractions`, `line_items`, `validation_issues`, `corrections`, `processing_events`, `reconciliations`) with NUMERIC(18,4) money, indexes per schema doc; `app/core/database.py` (engine/session/Base, SQLite support for tests).
+- Migration `0001_initial` written manually (no local Postgres/Docker). Verified offline: `alembic upgrade head --sql` renders 9 CREATE TABLE + 13 indexes; `downgrade 0001_initial:base --sql` renders 8 DROP TABLE. **Not executed against a live PostgreSQL — unverified.**
+- Endpoints: `POST /api/v1/documents` (multi-file: magic-byte detection, size cap, sha256 dedupe, filename sanitization, xlsx archive verification, per-item errors, 429 rate limit), `GET /api/v1/documents` (paginated, `q`/`status` filters), `GET /api/v1/documents/{id}/status` (page progress).
+- Layers: `services/{documents,file_validation}.py`, `repositories/documents.py`, `schemas/document.py`, `api/v1/documents.py`; in-memory fixed-window rate limiter (`core/rate_limit.py`, single-process — documented limitation).
+- Verified (real output): `ruff format --check` pass; `ruff check` pass; `mypy` "Success: no issues found in 36 source files"; `pytest -v --cov=app` **35 passed**, TOTAL 92%.
+- Tests run against per-test SQLite files, not PostgreSQL — pg-specific DDL (partial index `postgresql_where`, timezone behavior under pg) not runtime-verified. CSV UTF-8 boundary trim heuristic covered by tests; filename `ILIKE %q%` filter has no supporting pg index yet (needs pg_trgm at Task 5 search).
+- No Celery enqueue yet: upload stores `status=queued` in DB only; wiring enqueue to the pipeline lands with Task 1 (no silent stub per AGENTS §3).
+- Next: Task 1 pipelines (PDF/image/spreadsheet processing + worker enqueue), then result/validation endpoints.
 
 ### 2026-10-29 (later)
 
@@ -34,7 +45,11 @@ Source of truth for project status. Update after every task/session, same commit
 
 ## Known issues and limitations
 
-- No ORM models or migrations yet; Alembic initialized with `target_metadata = None`.
+- **Upload does not enqueue Celery work yet**: documents stay `status=queued` until the Task 1 pipeline PR adds the parent job (intentional — no silent stubs).
+- **Migration `0001_initial` never executed against live PostgreSQL** (no Docker/PG in dev env); only offline `--sql` rendering verified. Tests run on SQLite — pg-specific behavior (partial index, tz) unverified.
+- **Rate limiter is in-process memory**: resets on restart, counts per replica; acceptable single-instance, not multi-replica (NFR scalability caveat).
+- **`filename ILIKE '%q%'` list filter is unindexed** (would need pg_trgm GIN) — defer to Task 5 search work.
+- Rate-limit and file-validation tests cover unit paths; `/ready` real-dependency path still needs integration test against live postgres/redis.
 - `/ready` unit tests mock DB/Redis; no integration test with live services.
 - `docker-compose.yml` not built/run yet; frontend service absent (no Next.js app).
 - Worker container has no tasks; `celery_app` imported at module load requires env (compose supplies it).
