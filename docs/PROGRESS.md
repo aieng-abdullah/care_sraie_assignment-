@@ -8,13 +8,22 @@ Source of truth for project status. Update after every task/session, same commit
 |------|-------------|--------|
 | 1 | Backend scaffold: config, logging, health probes, Celery app, Alembic, Docker | Done |
 | 2 | Documents API (upload, status, results, search, corrections, reprocess) | In progress — upload/list/status done; result/corrections/reprocess/search pending |
-| 3 | PDF / image pipelines (page-parallel OCR + text extraction) | Not started |
+| 3 | PDF / image pipelines (page-parallel OCR + text extraction) | Done — PDF/image/spreadsheet OCR extraction pipelines implemented; Celery task fan-out with retry and idempotency; 62 tests pass across test_pipelines, test_worker_tasks, test_ocr_engine; magic-byte upload + dispatch_document wired; offline migration verified. |
 | 4 | Excel / CSV pipelines | Not started |
 | 5 | LLM extraction + grounding + validation rules | Not started |
 | 6 | Frontend (Next.js): upload, monitor, inspect, review, correct, search | Not started |
 | 7 | Evaluation dataset, metrics, report | Not started |
 
 ## Daily log
+
+### 2026-10-29 (Task 1 pipelines)
+
+- PDF/image/spreadsheet extraction pipelines: `app/pipelines/pdf_pipeline.py` (pymupdf page render + text-layer fallback), `image_pipeline.py` (preprocess_for_ocr with Otsu + Hough deskew), `spreadsheet_pipeline.py` (multi-sheet CSV); OCR engine abstraction (`ocr_engine.py`) with `TesseractOcrEngine` and factory `get_ocr_engine`.
+- Celery worker tasks (`app/workers/tasks.py`): `process_document` parent job, `process_page` fan-out, `process_single` for images/xlsx/csv, `finalize` idempotent completion, `_maybe_finalize` on page completion, retry policy with backoff+jitter for OperationalError/OSError, `_fail_document` safe failure path, `dispatch_document` enqueue-on-success service.
+- Test coverage: `tests/test_pipelines.py` (real fitz PDFs, openpyxl workbooks, corrupted/limit cases), `tests/test_worker_tasks.py` (eager celery, fake OCR mock, fan-out, finalize idempotency, broker-down enqueue_failed), `tests/test_ocr_engine.py` (preprocess, factory, tesseract recognize with pytesseract mock, missing binary failure).
+- Quality gates: `ruff format`, `ruff check`, `mypy` all pass (45 source files); pytest 62 passed, cov 89%.
+- Dockerfile: added `tesseract-ocr` + libs apt install before non-root USER.
+- env bootstrap: `conftest.py` sets `DATABASE_URL`, `REDIS_URL`, `LLM_API_KEY` defaults at import so `celery_app` module-level settings resolve during test collection.
 
 ### 2026-10-29 (PR B: documents API part 1)
 
