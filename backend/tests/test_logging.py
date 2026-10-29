@@ -72,10 +72,14 @@ def test_job_logger_emits_structured_event() -> None:
     """Lifecycle helper records an event name and safe fields for observability."""
     capture = CaptureHandler()
     root = logging.getLogger()
+    worker_logger = logging.getLogger("app.worker")
+    previous_level = worker_logger.level
     root.addHandler(capture)
+    worker_logger.setLevel(logging.INFO)  # don't rely on other tests configuring root
     try:
-        job_logger(logging.getLogger("app.worker"), "job_started", task_id="t-1")
+        job_logger(worker_logger, "job_started", task_id="t-1")
     finally:
+        worker_logger.setLevel(previous_level)
         root.removeHandler(capture)
     assert len(capture.records) == 1
     last: Any = capture.records[0]
