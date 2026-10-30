@@ -25,23 +25,33 @@ export interface DocumentStatusResponse {
 
 export interface ExtractionLineItem {
   description: string | null
-  quantity: number | null
-  unit_price: number | null
-  amount: number | null
+  quantity: string | null
+  unit_price: string | null
+  amount: string | null
+}
+
+export interface ValidationIssueItem {
+  code: string
+  severity: string
+  message: string
+  context: Record<string, unknown> | null
 }
 
 export interface ExtractionResponse {
+  document_id: string
+  document_status: string
   invoice_number: string | null
   invoice_date: string | null // ISO date string YYYY-MM-DD
   supplier_name: string | null
   customer_name: string | null
-  subtotal: number | null
-  tax: number | null
-  total: number | null
+  subtotal: string | null // Decimal serialized as string (no float artifacts)
+  tax: string | null
+  total: string | null
   currency: string | null // 3-letter ISO code
   status: string // "ok" | "needs_review"
   field_meta: { reason?: string } | null
   line_items: ExtractionLineItem[]
+  validation_issues: ValidationIssueItem[]
 }
 
 export interface UploadResponse {
@@ -68,7 +78,7 @@ export interface CorrectionResponse {
   old_value: string | null
   new_value: string
   reason: string | null
-  created_at: Date
+  validation_issues: ValidationIssueItem[]
 }
 
 export interface DocumentListResponse {

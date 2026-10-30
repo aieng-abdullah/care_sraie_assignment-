@@ -24,6 +24,7 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
   const [tab, setTab] = useState<"status" | "results" | "corrections">("status")
   const [status, setStatus] = useState<DocumentStatusResponse | null>(null)
   const [extraction, setExtraction] = useState<ExtractionResponse | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,7 +61,7 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
     return () => {
       cancelled = true
     }
-  }, [document.id])
+  }, [document.id, reloadKey])
 
   // Poll status while processing
   useEffect(() => {
@@ -168,7 +169,10 @@ export function DocumentDetail({ document }: DocumentDetailProps) {
           {tab === "corrections" ? (
             extraction &&
             (status?.status === "ok" || status?.status === "needs_review") ? (
-              <CorrectionForm documentId={document.id} onApplied={() => setExtraction(null)} />
+              <CorrectionForm
+                documentId={document.id}
+                onApplied={() => setReloadKey((k) => k + 1)}
+              />
             ) : (
               <EmptyState title="No corrections available" description="Corrections apply once extraction results exist." />
             )

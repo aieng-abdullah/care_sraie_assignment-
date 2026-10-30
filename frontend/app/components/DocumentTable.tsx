@@ -12,7 +12,10 @@ import { ErrorBanner } from "./ErrorBanner"
 type DocumentTableProps = {
   onSelect: (doc: DocumentSummary) => void
   statusFilter?: string
+  onStatusFilterChange?: (status: string) => void
   query?: string
+  onQueryChange?: (query: string) => void
+  refreshKey?: number
   page?: number
   pageSize?: number
 }
@@ -20,7 +23,10 @@ type DocumentTableProps = {
 export function DocumentTable({
   onSelect,
   statusFilter,
+  onStatusFilterChange,
   query,
+  onQueryChange,
+  refreshKey = 0,
   page = 1,
   pageSize = 20,
 }: DocumentTableProps) {
@@ -55,7 +61,7 @@ export function DocumentTable({
     return () => {
       cancelled = true
     }
-  }, [query, statusFilter, page, pageSize])
+  }, [query, statusFilter, page, pageSize, refreshKey])
 
   if (loading) {
     return (
@@ -77,7 +83,7 @@ export function DocumentTable({
           <select
             className="select"
             value={statusFilter || ""}
-            onChange={(e) => {}}
+            onChange={(e) => onStatusFilterChange?.(e.target.value)}
           >
             <option value="">All</option>
             {["queued", "processing", "ok", "needs_review", "failed"].map((s) => (
@@ -93,7 +99,7 @@ export function DocumentTable({
             className="input"
             placeholder="Filename…"
             value={query || ""}
-            onChange={(e) => {}}
+            onChange={(e) => onQueryChange?.(e.target.value)}
           />
         </label>
       </div>

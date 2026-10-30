@@ -7,9 +7,13 @@ import { UseUpload } from "./Upload"
 import { StatusBadge } from "./StatusBadge"
 import type { UploadItem } from "../../lib/api"
 
-export function UploadZone() {
+type UploadZoneProps = {
+  onUploadComplete?: (items: UploadItem[]) => void
+}
+
+export function UploadZone({ onUploadComplete }: UploadZoneProps) {
   const { progress, isSubmitting, fileInputRef, selectFiles, handleChange } = UseUpload({
-    onUploadComplete: () => {},
+    onUploadComplete: onUploadComplete ?? (() => {}),
   })
 
   return (

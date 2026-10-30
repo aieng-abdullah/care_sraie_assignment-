@@ -11,6 +11,12 @@ type ExtractionCardProps = {
   status: string | null
 }
 
+/** Display a Decimal-as-string money value trimmed of trailing zeros. */
+function fmtMoney(value: string | null): string {
+  if (value === null) return "—"
+  return value.replace(/0+$/, "").replace(/\.$/, "")
+}
+
 export function ExtractionCard({ extraction, status }: ExtractionCardProps) {
   if (!extraction) {
     return <EmptyState title="No extraction results yet" description="Processing may still be running." />
@@ -49,10 +55,28 @@ export function ExtractionCard({ extraction, status }: ExtractionCardProps) {
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">Total</p>
           <p className="font-medium">
-            {extraction.total !== null ? `$${extraction.total.toString()}` : "—"}
+            {extraction.total !== null ? `$${fmtMoney(extraction.total)}` : "—"}
           </p>
         </div>
       </div>
+
+      {extraction.validation_issues.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">Validation issues</p>
+          <ul className="space-y-2">
+            {extraction.validation_issues.map((issue, i) => (
+              <li
+                key={`${issue.code}-${i}`}
+                className="p-3 rounded border text-sm text-destructive bg-destructive/5 border-destructive/30"
+              >
+                <span className="font-medium capitalize">{issue.code.replace(/_/g, " ")}</span>
+                {" — "}
+                {issue.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {extraction.field_meta?.reason && (
         <div className="p-3 rounded bg-amber-50 border border-amber-100 text-sm text-amber-800">

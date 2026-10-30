@@ -2,7 +2,7 @@
 
 /** App shell: navbar, upload zone, document list, and selected document detail. */
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Navbar } from "./components/Navbar"
 import { UploadZone } from "./components/UploadZone"
 import { DocumentTable } from "./components/DocumentTable"
@@ -12,6 +12,16 @@ import type { DocumentSummary } from "../lib/api"
 
 export default function Page() {
   const [selectedDoc, setSelectedDoc] = useState<DocumentSummary | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
+  const [query, setQuery] = useState("")
+  const [debouncedQuery, setDebouncedQuery] = useState("")
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Debounce the search box so a keystroke does not fire a fetch each time.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300)
+    return () => clearTimeout(timer)
+  }, [query])
 
   return (
     <div className="min-h-screen bg-background">
@@ -19,8 +29,15 @@ export default function Page() {
       <main className="max-w-5xl mx-auto p-6">
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-6">
-            <UploadZone />
-            <DocumentTable onSelect={setSelectedDoc} />
+            <UploadZone onUploadComplete={() => setRefreshKey((k) => k + 1)} />
+            <DocumentTable
+              onSelect={setSelectedDoc}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+              query={debouncedQuery}
+              onQueryChange={setQuery}
+              refreshKey={refreshKey}
+            />
           </div>
           <div className="lg:col-span-8">
             {selectedDoc ? (

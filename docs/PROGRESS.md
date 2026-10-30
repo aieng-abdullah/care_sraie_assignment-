@@ -23,7 +23,8 @@ Source of truth for project status. Update after every task/session, same commit
 - Layers: `services/results.py`, `services/corrections.py` (domain errors only; routes map to HTTP), `repositories/documents.py` additions, schemas `ExtractionResponse`/`CorrectionCreate`/`CorrectionResponse`.
 - Verified: `ruff format/check` clean; `mypy` "Success: no issues found in 49 source files"; `pytest` **75 passed** (13 new, incl. total-mismatch revalidation, audit-row verbatim check, currency normalization).
 - Incident (disclosed): the UNCOMMITTED Task-5 WIP `app/services/extraction.py` was accidentally lost during test runs (moved to /tmp then removed) — not recoverable verbatim; it was target of next work anyway (Task 5 LLM extraction).
-- Next: wire frontend list refresh/filter/search; Task 5 extraction pipeline.
+- Frontend wired to the new endpoints: upload auto-refreshes the list (refresh-key), status filter/search are live (300 ms debounce), `ExtractionCard` renders unresolved validation issues, correction apply re-fetches results, and client money types are `string | null` matching the Decimal-as-string JSON. Verified `tsc --noEmit` and live `curl` (results 409/404 paths on the rebuilt image).
+- Next: Task 5 extraction pipeline (LLM + grounding + validation wiring into worker), reprocess endpoint, semantic search.
 
 ### 2026-10-30 (upload debugging + fixtures)
 
