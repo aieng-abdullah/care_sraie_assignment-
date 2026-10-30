@@ -7,7 +7,7 @@ Source of truth for project status. Update after every task/session, same commit
 | Task | Deliverable | Status |
 |------|-------------|--------|
 | 1 | Backend scaffold: config, logging, health probes, Celery app, Alembic, Docker | Done |
-| 2 | Documents API (upload, status, results, search, corrections, reprocess) | In progress — upload/list/status done; result/corrections/reprocess/search pending |
+| 2 | Documents API (upload, status, results, search, corrections, reprocess) | In progress — upload/list/status/results/corrections done; reprocess + semantic search pending |
 | 3 | PDF / image pipelines (page-parallel OCR + text extraction) | Done — PDF/image/spreadsheet OCR extraction pipelines implemented; Celery task fan-out with retry and idempotency; 62 tests pass across test_pipelines, test_worker_tasks, test_ocr_engine; magic-byte upload + dispatch_document wired; offline migration verified. |
 | 4 | Excel / CSV pipelines | Not started |
 | 5 | LLM extraction + grounding + validation rules | Not started |
@@ -15,6 +15,15 @@ Source of truth for project status. Update after every task/session, same commit
 | 7 | Evaluation dataset, metrics, report | Not started |
 
 ## Daily log
+
+### 2026-10-30 (results + corrections endpoints)
+
+- Added `GET /api/v1/documents/{id}/results`: extraction + line items + unresolved validation issues; 404 unknown id, 409 not extracted; money serialized as JSON strings (Decimal, no floats).
+- Added `POST /api/v1/documents/{id}/corrections`: validates field/value (422 on unknown field/malformed decimal/date/currency), applies to extraction, appends append-only audit row, re-runs shared rules (`app/validation/rules.py`) with issue re-resolution, and recomputes terminal document status (ok/needs_review). Single transaction.
+- Layers: `services/results.py`, `services/corrections.py` (domain errors only; routes map to HTTP), `repositories/documents.py` additions, schemas `ExtractionResponse`/`CorrectionCreate`/`CorrectionResponse`.
+- Verified: `ruff format/check` clean; `mypy` "Success: no issues found in 49 source files"; `pytest` **75 passed** (13 new, incl. total-mismatch revalidation, audit-row verbatim check, currency normalization).
+- Incident (disclosed): the UNCOMMITTED Task-5 WIP `app/services/extraction.py` was accidentally lost during test runs (moved to /tmp then removed) — not recoverable verbatim; it was target of next work anyway (Task 5 LLM extraction).
+- Next: wire frontend list refresh/filter/search; Task 5 extraction pipeline.
 
 ### 2026-10-30 (upload debugging + fixtures)
 

@@ -12,13 +12,18 @@ from app.core.rate_limit import enforce_rate_limit
 from app.models import Document
 from app.repositories import documents as documents_repo
 from app.schemas.document import (
+    CorrectionCreate,
+    CorrectionResponse,
     DocumentListResponse,
     DocumentStatusResponse,
     DocumentSummary,
+    ExtractionResponse,
     UploadItem,
     UploadResponse,
 )
+from app.services import corrections as corrections_service
 from app.services import documents as documents_service
+from app.services import results as results_service
 from app.services.file_validation import UnsupportedFileTypeError
 
 router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
@@ -128,3 +133,46 @@ def document_status(
         created_at=document.created_at,
         updated_at=document.updated_at,
     )
+
+
+@router.get("/{document_id}/results", response_model=ExtractionResponse)
+def document_results(
+    document_id: uuid.UUID,
+    session: Session = Depends(get_db),
+) -> ExtractionResponse:
+    """Return one document's extraction, line items, and unresolved issues."""
+    try:
+        document = results_service.lookup_document(session, document_id)
+        return results_service.get_results(session, document)
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="document not found"
+        ) from None
+    except results_service.ExtractionNotReadyError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from None
+
+
+@router.post(
+    "/{document_id}/corrections",
+    response_model=CorrectionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_correction(
+    document_id: uuid.UUID,
+    payload: CorrectionCreate,
+    session: Session = Depends(get_db),
+) -> CorrectionResponse:
+    """Apply a manual correction to one field, audit it, and re-validate."""
+    try:
+        document = results_service.lookup_document(session, document_id)
+        return corrections_service.apply_correction(session, document, payload)
+    except KeyError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="document not found"
+        ) from None
+    except results_service.ExtractionNotReadyError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from None
+    except corrections_service.InvalidCorrectionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from None
