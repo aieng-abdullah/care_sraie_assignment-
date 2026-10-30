@@ -23,11 +23,11 @@ class Settings(BaseSettings):
     # Required: startup fails with a clear validation error if any are missing.
     database_url: str
     redis_url: str
-    llm_api_key: SecretStr
+    llm_api_key: SecretStr  # Groq: gsk_...  or OpenAI: sk-...
 
-    # LLM (Groq via OpenAI-compatible endpoint).
-    llm_base_url: str = "https://api.groq.com/openai/v1"
-    llm_model: str = "llama-3.3-70b-versatile"
+    # LLM (OpenAI-compatible endpoint; set base_url/model for other providers).
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_model: str = "gpt-4o-mini"
     llm_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
 
     # Embeddings (OpenAI); required from the semantic-search milestone onward.
