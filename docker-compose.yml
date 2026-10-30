@@ -67,7 +67,19 @@ services:
     deploy:
       replicas: 1
 
-  # Frontend service added in a later PR once the Next.js app exists.
+  frontend:
+    image: node:22-alpine
+    command: sh -c "npm ci && npx next dev -H 0.0.0.0 -p 3000"
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
 
 volumes:
   pgdata:

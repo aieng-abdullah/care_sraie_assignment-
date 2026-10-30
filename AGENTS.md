@@ -210,11 +210,14 @@ The brief asks for a **simple React or Next.js interface**. Build exactly these 
 5. **Correct** extracted values (calls the correction endpoint, which re-runs validation)
 6. **Search** previously processed documents (keyword filters and semantic search)
 
+"Simple and functional" includes a clean, purposeful design system — cards, status badges, progress bars, typography, empty/error/loading states — but excludes dashboards, analytics, theming systems, and decorative animations beyond what the six capabilities need.
+
 Rules:
 - Keep it simple and functional. No extra pages, dashboards, analytics, theming systems, or animations beyond what these six need.
 - Show real data from the API. Never hard-code or mock results in the UI.
 - Show loading, empty, and error states. Display low-confidence and `null` fields clearly, and never fill them in on the client.
 - Use a typed API client (TypeScript) and keep components small and reusable.
+- Use a shared design system (CSS variables + small component primitives in `globals.css`) so the UI is consistent and legible, not unstyled.
 
 ## 7. Naming and Structure (professional conventions)
 
