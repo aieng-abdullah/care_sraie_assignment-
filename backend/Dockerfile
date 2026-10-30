@@ -28,11 +28,17 @@ RUN touch README.md \
 
 COPY app ./app
 RUN uv sync --locked --no-dev --no-install-project \
-    && chown -R app:app /app
+    && chown -R app:app /app \
+    # The uploads named volume mounts here; creating it in-image ensures the
+    # non-root app user owns it even after docker mounts the volume.
+    && mkdir -p /app/data/uploads \
+    && chown -R app:app /app/data
 
 USER app
 
 EXPOSE 8000
 
 # Factory form: settings are validated at create_app() via get_settings().
+ENV PATH="/app/.venv/bin:$PATH"
+
 CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]

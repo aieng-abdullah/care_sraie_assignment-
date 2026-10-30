@@ -32,7 +32,8 @@ def test_missing_required_env_fails_fast(monkeypatch: pytest.MonkeyPatch) -> Non
 def test_defaults_match_documented_env_example() -> None:
     """Optional settings default to the values documented in .env.example."""
     settings = make_settings()
-    assert settings.llm_base_url == "https://api.groq.com/openai/v1"
+    assert settings.llm_base_url == "https://api.openai.com/v1"
+    assert settings.llm_model == "gpt-4o-mini"
     assert settings.max_upload_mb == 20
     assert settings.max_pdf_pages == 1000
     assert settings.ocr_engine == "tesseract"

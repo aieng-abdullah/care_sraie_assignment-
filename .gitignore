@@ -19,6 +19,7 @@ htmlcov/
 node_modules/
 .next/
 out/
+frontend/.out/
 build/
 dist/
 
@@ -34,6 +35,12 @@ logs/
 /models/
 *.gguf
 *.onnx
+
+# Evaluation fixtures: keep the small sample invoices commit-able despite the
+# broad *.pdf/*.csv/*.xlsx upload-data ignores above.
+!backend/evaluation/fixtures/*.pdf
+!backend/evaluation/fixtures/*.csv
+!backend/evaluation/fixtures/*.xlsx
 
 # Editors / OS
 .idea/
