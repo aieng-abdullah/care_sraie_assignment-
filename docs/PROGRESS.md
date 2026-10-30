@@ -11,10 +11,27 @@ Source of truth for project status. Update after every task/session, same commit
 | 3 | PDF / image pipelines (page-parallel OCR + text extraction) | Done — PDF/image/spreadsheet OCR extraction pipelines implemented; Celery task fan-out with retry and idempotency; 62 tests pass across test_pipelines, test_worker_tasks, test_ocr_engine; magic-byte upload + dispatch_document wired; offline migration verified. |
 | 4 | Excel / CSV pipelines | Not started |
 | 5 | LLM extraction + grounding + validation rules | Not started |
-| 6 | Frontend (Next.js): upload, monitor, inspect, review, correct, search | Not started |
+| 6 | Frontend (Next.js): upload, monitor, inspect, review, correct, search | Done — Next.js UI implemented with 6 capabilities (upload/monitor/inspect/review/correct/search); TypeScript verified; .env.example updated for OpenAI (remove Groq); API client typed; see daily log 2026-10-29 |
 | 7 | Evaluation dataset, metrics, report | Not started |
 
 ## Daily log
+
+### 2026-10-30 (upload debugging + fixtures)
+
+- Fixed `UploadZone.tsx` orphaned-ref bug: "Select files" clicked an unattached `React.createRef` instead of the hidden input's ref; now uses the `fileInputRef` returned by `UseUpload`. Verified `tsc --noEmit`.
+- Fixed `backend/Dockerfile`: named `uploads` volume mounted over a never-created `/app/data/uploads` owned by root, so non-root `app` user got `PermissionError` on mkdir → upload **500**. Added in-image `mkdir -p /app/data/uploads && chown app:app /app/data`; live volume chowned (was empty, no data touched). Image rebuilt + restarted (`docker compose build api && up -d api`).
+- Added `backend/evaluation/generate_fixtures.py` producing test invoices in all 4 accepted formats (PDF text-layer, PNG OCR, XLSX, CSV) with consistent ground truth (subtotal 240 + tax 24 = total 264 USD) in `evaluation/fixtures/`. Verified each passes `detect_content_type` / `verify_xlsx_archive`.
+- Verified end-to-end against the live stack (real output): `POST /api/v1/documents` → **201** for pdf and csv; `GET /api/v1/documents` lists both; `invoice_text.pdf` processed to `status=ok` (1 page) by the worker. CORS preflight (`OPTIONS` with Origin + ACRM) → 200 with `allow-origin: http://localhost:3000`, so the earlier browser `TypeError: Failed to fetch` was transient (container not yet reachable), not CORS.
+- Not verified: upload through the browser UI itself; `/results`, `/corrections`, search, reprocess endpoints; remaining 2 fixtures (png/xlsx) through the pipeline.
+
+### 2026-10-30 (Task 6 frontend design system)
+
+- Redesigned frontend with a real design system: `app/globals.css` defines CSS variables (background, foreground, primary, border, card, muted, destructive, radius) and component primitives (card, btn, input, select, badge, progress-track/bar, spinner, error-banner, empty-state, table) plus Inter font import.
+- `layout.tsx`: loads globals.css, sets `antialiased` body.
+- Split monolithic `DocumentDetail.tsx` (412 lines) into small reusable components: `Navbar`, `UploadZone`, `DocumentTable`, `StatusBadge`, `ProgressBar`, `ExtractionCard`, `LineItemsTable` (inside ExtractionCard), `CorrectionForm`, `EmptyState`, `ErrorBanner`.
+- `page.tsx`: composes Navbar + UploadZone + DocumentTable + DocumentDetail in a responsive grid (list left, detail right).
+- Status badges color-coded (ok/needs_review/processing/failed), page progress bar, loading/empty/error states, corrections form calls `documentCorrection` and refreshes data.
+- Verified: `tsc --noEmit` passes. Next build not run — environment Node 18, Next 16 requires >=20.9.
 
 ### 2026-10-29 (Task 1 pipelines)
 
